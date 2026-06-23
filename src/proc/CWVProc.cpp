@@ -122,7 +122,7 @@ STRUCT_SIZE_ASSERT(CWVFooter, 0x100);
 
 CWVSound::CWVSound(void) :
     mSampleRate(0), mSampleCount(0), mChannelCount(0),
-    mSampleData(NULL)
+    mSampleData(NULL), mName(NULL)
 {}
 
 /*
