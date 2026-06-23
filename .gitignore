@@ -1,0 +1,12 @@
+*.o
+cwvtool
+
+*.cwv
+*.wav
+
+.ninja_deps
+.ninja_log
+
+compile_flags.txt
+
+.DS_Store
