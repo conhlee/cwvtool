@@ -11,8 +11,6 @@
 
 #include <Macro.hpp>
 
-static const char PROJ_VERSION_SUPPORT[] = "1.0";
-
 int main(int argc, const char **argv) {
     if (argc < 3) {
         printf("CWVtool v1.0\n");

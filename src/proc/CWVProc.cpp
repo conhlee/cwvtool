@@ -5,7 +5,10 @@
 #include <Macro.hpp>
 #include <cstring>
 
-/* demov1.0 0x7100ae7448 */
+/*
+ * demov1.0 7100ae7448
+ */
+
 static const u16 s_cwvLUT[256] = {
     0x0,     0x2,     0x4,     0x8,
     0xD,     0x13,    0x1B,    0x24,
@@ -121,6 +124,10 @@ CWVSound::CWVSound(void) :
     mSampleRate(0), mSampleCount(0), mChannelCount(0),
     mSampleData(NULL)
 {}
+
+/*
+ * demov1.0 71004ebb10
+ */
 
 CWVSound::CWVSound(const Buffer &data) {
     if (!data.check()) {
