@@ -15,12 +15,14 @@ public:
     WAVSound &operator=(WAVSound &&other);
 
     u32 getSampleRate(void) const { return mSampleRate; }
+    void setSampleRate(u32 sampleRate) { mSampleRate = sampleRate; }
+
     u16 getChannelCount(void) const { return mChannelCount; }
 
-    /* NOTE: returns samples per channel. */
     u32 calcSampleCount(void) const { return mSampleCount; }
 
     const s16 *getSampleData(void) const { return mSampleData; }
+    s16 *getSampleData(void) { return mSampleData; }
 
     Buffer build(void);
 

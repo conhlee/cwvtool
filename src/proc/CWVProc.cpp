@@ -76,22 +76,23 @@ static const u16 s_cwvLUT[256] = {
     0xFFF3,  0xFFF8,  0xFFFC,  0xFFFE
 };
 
-static u8 calcCVWSampleFromPCM16(s16 sample) {
-    u32 i;
-    for (i = 0; i < ARRAY_LENGTH(s_cwvLUT); i++) {
-        if ((s16)s_cwvLUT[i] >= sample) break;
+static inline u8 calcLUTSample(s16 value) {
+    u32 best = 0;
+    u32 bestDiff = ABS((s16)s_cwvLUT[0] - value);
+
+    for (u32 i = 1; i < ARRAY_LENGTH(s_cwvLUT); i++) {
+        u32 diff = ABS((s16)s_cwvLUT[i] - value);
+
+        if (diff == 0) {
+            return i;
+        }
+        else if (diff < bestDiff) {
+            bestDiff = diff;
+            best = i;
+        }
     }
 
-    if (i == ARRAY_LENGTH(s_cwvLUT)) {
-        return ARRAY_LENGTH(s_cwvLUT) - 1;
-    }
-
-    if (((s16)s_cwvLUT[i] - sample) <= (sample - (s16)s_cwvLUT[i - 1])) {
-        return i;
-    }
-    else {
-        return i - 1;
-    }
+    return best;
 }
 
 typedef struct __attribute__((packed)) {
@@ -99,16 +100,16 @@ typedef struct __attribute__((packed)) {
     u32 sampleRate;
     u32 sampleCount;
 
-    u32 unk0C;
-    u32 unk10;
-    u32 unk14;
-    f32 unk18;
-    f32 unk1C;
-    u32 unk20;
-    u32 unk24;
+    u32 unk0C; /* Usually 2 */
+    u32 loopStart;
+    u32 loopEnd;
+    f32 volume;
+    f32 pitch; /* Usually 1.0f */
+    u32 pan; /* Usually 0.0f */
+    u32 unk24; /* Usually 2 */
     u32 unk28;
     u32 unk2C;
-    f32 unk30;
+    f32 unk30; /* Usually 1.0f */
     u32 unk34;
     u32 unk38;
     u32 unk3C;
@@ -121,9 +122,11 @@ typedef struct __attribute__((packed)) {
 STRUCT_SIZE_ASSERT(CWVFooter, 0x100);
 
 CWVSound::CWVSound(void) :
-    mSampleRate(0), mSampleCount(0), mChannelCount(0),
-    mSampleData(NULL), mName(NULL)
-{}
+    mSampleRate(0), mSampleCount(0), mChannelCount(0), mSampleData(NULL),
+    mLoopStart(0), mLoopEnd(0), mVolume(1.0f), mPitch(1.0f), mPan(1.0f)
+{
+    mName[0] = '\0';
+}
 
 /*
  * demov1.0 71004ebb10
@@ -151,18 +154,16 @@ CWVSound::CWVSound(const Buffer &data) {
     mSampleCount = footer->sampleCount;
     mSampleRate = footer->sampleRate;
 
-    /* TODO: what's with the 0x10FF and the mask? */
-    u32 sampleDataSize =
-        ((mSampleCount * sizeof(s16) * mChannelCount) + 0x10FF) & 0xFFFFF000;
+    u32 sampleDataSize = mSampleCount * sizeof(s16) * mChannelCount;
     mSampleData = new s16[sampleDataSize / sizeof(s16)];
 
     for (u32 i = 0; i < mChannelCount; i++) {
-        s16 backSample = 0;
+        s16 prevSample = 0;
         for (u32 j = 0; j < mSampleCount; j++) {
             s16 sample = (s16)s_cwvLUT[samples[(j * mChannelCount) + i]];
 
-            s16 finalSample = sample + backSample;
-            backSample = finalSample;
+            s16 finalSample = sample + prevSample;
+            prevSample = finalSample;
 
             mSampleData[(j * mChannelCount) + i] = finalSample;
         }
@@ -174,21 +175,24 @@ CWVSound::CWVSound(const Buffer &data) {
         nameLength++;
     }
 
-    mName = new char[nameLength + 1];
+    mLoopStart = footer->loopStart;
+    mLoopEnd = footer->loopEnd;
+    mVolume = footer->volume;
+    mPitch = footer->pitch;
+    mPan = footer->pan;
+
     memcpy(mName, footer->name, nameLength);
     mName[nameLength] = '\0';
 }
 
-CWVSound::CWVSound(const s16 *sampleData, u32 sampleCount, u16 channelCount, u32 sampleRate) {
+CWVSound::CWVSound(const s16 *sampleData, u32 sampleCount, u16 channelCount, u32 sampleRate) :
+    mSampleCount(sampleCount), mChannelCount(channelCount), mSampleRate(sampleRate),
+    mLoopStart(0), mLoopEnd(0), mVolume(1.0f), mPitch(1.0f), mPan(1.0f)
+{
     u32 sampleDataSize = sampleCount * sizeof(s16) * channelCount;
     mSampleData = new s16[sampleDataSize / sizeof(s16)];
     memcpy(mSampleData, sampleData, sampleDataSize);
 
-    mSampleCount = sampleCount;
-    mChannelCount = channelCount;
-    mSampleRate = sampleRate;
-
-    mName = new char[1];
     mName[0] = '\0';
 }
 
@@ -197,9 +201,6 @@ CWVSound::~CWVSound(void) {
         delete[] mSampleData;
         mSampleData = NULL;
     }
-    if (mName != NULL) {
-        delete[] mName;
-    }
 }
 
 CWVSound &CWVSound::operator=(CWVSound &&other) {
@@ -207,43 +208,38 @@ CWVSound &CWVSound::operator=(CWVSound &&other) {
         if (mSampleData != NULL) {
             delete[] mSampleData;
         }
-        if (mName != NULL) {
-            delete[] mName;
-        }
-
         mSampleRate = other.mSampleRate;
         mSampleCount = other.mSampleCount;
         mChannelCount = other.mChannelCount;
         mSampleData = other.mSampleData;
-        mName = other.mName;
+        memcpy(mName, other.mName, sizeof(mName));
 
         other.mSampleRate = 0;
         other.mSampleCount = 0;
         other.mChannelCount = 0;
         other.mSampleData = NULL;
-        other.mName = NULL;
+        other.mName[0] = '\0';
     }
     return *this;
+}
+
+void CWVSound::setName(const char *name) {
+    u32 nameLength = strlen(name);
+    memcpy(mName, name, MIN(nameLength, sizeof(mName) - 1));
+    mName[sizeof(mName) - 1] = '\0';
 }
 
 Buffer CWVSound::build(void) {
     u32 sampleDataSize = sizeof(u8) * mSampleCount * mChannelCount;
 
-    u32 fileSize = sampleDataSize;
-    fileSize = (fileSize + 0xFF) & ~0xFF; /* Align to 0x100 */
+    u32 fileSize = (sampleDataSize + sizeof(CWVFooter) + 0xFFF) & ~0xFFF;
 
-    u32 footerOffset = fileSize;
-    fileSize += sizeof(CWVFooter);
+    u32 footerOffset = fileSize - sizeof(CWVFooter); 
 
     Buffer buffer (fileSize);
 
     u8 *samples = buffer.data<u8>();
-    for (u32 i = 0; i < mChannelCount; i++) {
-        for (u32 j = 0; j < mSampleCount; j++) {
-            u32 index = (j * mChannelCount) + i;
-            samples[index] = calcCVWSampleFromPCM16(mSampleData[index]);
-        }
-    }
+    doEncode(samples);
 
     CWVFooter *footer = buffer.data<CWVFooter>(footerOffset);
     footer->flags = (1 << 1) | ((mChannelCount == 2) ? 1 : 0);
@@ -252,11 +248,37 @@ Buffer CWVSound::build(void) {
     footer->sampleCount = mSampleCount;
 
     footer->unk0C = 2;
-    footer->unk18 = 0.582677186f;
-    footer->unk1C = 1.0f;
+    footer->loopStart = mLoopStart;
+    footer->loopEnd = mLoopEnd;
+    footer->volume = mVolume;
+    footer->pitch = mPitch;
+    footer->pan = mPan;
     footer->unk24 = 2;
+    footer->unk30 = 1.0f;
 
-    strncpy(footer->name, mName, sizeof(footer->name));
+    u32 nameLength = strlen(mName);
+    memcpy(footer->name, mName, MIN(nameLength, sizeof(footer->name)));
 
     return buffer;
+}
+
+void CWVSound::doEncode(u8 *dest) {
+    for (u32 i = 0; i < mChannelCount; i++) {
+        s32 prevSample = 0;
+        for (u32 j = 0; j < mSampleCount; j++) {
+            u32 index = (j * mChannelCount) + i;
+
+            s32 diff = mSampleData[index] - prevSample;
+            prevSample = mSampleData[index];
+
+            if (diff > (s16)0x7FFF) {
+                diff = (s16)0x7FFF;
+            }
+            else if (diff < (s16)0x8000) {
+                diff = (s16)0x8000;
+            }
+
+            dest[index] = calcLUTSample(diff);
+        }
+    }
 }
