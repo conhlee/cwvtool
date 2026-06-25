@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     f32 encVolume = 1.0f;
     f32 encPitch = 1.0f;
     f32 encPan = 0.0f;
-    const char *encName = NULL;
+    const char *encName = "";
 
     for (s32 i = 1; i < argc; i++) {
         char *arg = argv[i];
