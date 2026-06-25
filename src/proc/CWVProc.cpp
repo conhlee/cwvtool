@@ -80,6 +80,10 @@ static inline u8 calcLUTSample(s16 value) {
     u32 best = 0;
     u32 bestDiff = ABS((s16)s_cwvLUT[0] - value);
 
+    if (bestDiff == 0) {
+        return best;
+    }
+
     for (u32 i = 1; i < ARRAY_LENGTH(s_cwvLUT); i++) {
         u32 diff = ABS((s16)s_cwvLUT[i] - value);
 
@@ -269,7 +273,6 @@ void CWVSound::doEncode(u8 *dest) {
             u32 index = (j * mChannelCount) + i;
 
             s32 diff = mSampleData[index] - prevSample;
-            prevSample = mSampleData[index];
 
             if (diff > (s16)0x7FFF) {
                 diff = (s16)0x7FFF;
@@ -278,7 +281,10 @@ void CWVSound::doEncode(u8 *dest) {
                 diff = (s16)0x8000;
             }
 
-            dest[index] = calcLUTSample(diff);
+            u8 lutSample = calcLUTSample(diff);
+            dest[index] = lutSample;
+
+            prevSample += (s16)s_cwvLUT[lutSample];
         }
     }
 }
