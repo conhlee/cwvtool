@@ -135,7 +135,7 @@ namespace CWV {
     }
 }
 
-extern "C" void* CWV_decode(void* cwvData, size_t size, uint32_t loopTimes, bool applyVolume, bool applyPitch, bool applyPan) {
+extern "C" void* CWV_decode(void* cwvData, size_t size, u32 loopTimes, bool applyVolume, bool applyPitch, bool applyPan) {
     Buffer cwvBuffer = Buffer(size);
     memcpy(cwvBuffer.data(), cwvData, size);
 
