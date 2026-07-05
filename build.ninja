@@ -33,14 +33,15 @@ build $outdir/File.o: cc src/File.cpp
 build $outdir/Error.o: cc src/Error.cpp
 build $outdir/CWVProc.o: cc src/proc/CWVProc.cpp
 build $outdir/WAVProc.o: cc src/proc/WAVProc.cpp
-build $outdir/API.o: cc src/lib/API.cpp
+build $outdir/Convert.o: cc src/Convert.cpp
 
 build $outdir/libcwv.a: ar $
-    $outdir/API.o $
+    $outdir/Convert.o $
     $outdir/File.o $outdir/Error.o $
     $outdir/CWVProc.o $outdir/WAVProc.o
 
 build $outdir/cwvtool: link $
-    $outdir/main.o $outdir/API.o $
+    $outdir/main.o $
+    $outdir/Convert.o $
     $outdir/File.o $outdir/Error.o $
     $outdir/CWVProc.o $outdir/WAVProc.o

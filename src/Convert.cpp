@@ -7,7 +7,7 @@
 #include "proc/CWVProc.hpp"
 #include "proc/WAVProc.hpp"
 
-#include "API.h"
+#include "Convert.h"
 
 namespace CWV {
     Buffer decode(Buffer &cwvBuffer, u32 loopTimes, bool applyVolume, bool applyPitch, bool applyPan) {
