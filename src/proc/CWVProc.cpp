@@ -16,7 +16,7 @@ typedef struct __attribute__((packed)) {
 
     u32 unk0C; /* Usually 2 */
     u32 loopStart;
-    u32 loopEnd;
+    u32 loopLength;
     f32 volume;
     f32 pitch; /* Usually 1.0f */
     u32 pan; /* Usually 0.0f */
@@ -37,7 +37,7 @@ STRUCT_SIZE_ASSERT(CWVFooter, 0x100);
 
 CWVSound::CWVSound(void) :
     mSampleRate(0), mSampleCount(0), mChannelCount(0), mSampleData(NULL),
-    mLoopStart(0), mLoopEnd(0), mVolume(1.0f), mPitch(1.0f), mPan(1.0f)
+    mLoopStart(0), mLoopLength(0), mVolume(1.0f), mPitch(1.0f), mPan(1.0f)
 {
     mName[0] = '\0';
 }
@@ -90,7 +90,7 @@ CWVSound::CWVSound(const Buffer &data) {
     }
 
     mLoopStart = footer->loopStart;
-    mLoopEnd = footer->loopEnd;
+    mLoopLength = footer->loopLength;
     mVolume = footer->volume;
     mPitch = footer->pitch;
     mPan = footer->pan;
@@ -101,7 +101,7 @@ CWVSound::CWVSound(const Buffer &data) {
 
 CWVSound::CWVSound(const s16 *sampleData, u32 sampleCount, u16 channelCount, u32 sampleRate) :
     mSampleCount(sampleCount), mChannelCount(channelCount), mSampleRate(sampleRate),
-    mLoopStart(0), mLoopEnd(0), mVolume(1.0f), mPitch(1.0f), mPan(1.0f)
+    mLoopStart(0), mLoopLength(0), mVolume(1.0f), mPitch(1.0f), mPan(1.0f)
 {
     u32 sampleDataSize = sampleCount * sizeof(s16) * channelCount;
     mSampleData = new s16[sampleDataSize / sizeof(s16)];
@@ -163,7 +163,7 @@ Buffer CWVSound::build(void) {
 
     footer->unk0C = 2;
     footer->loopStart = mLoopStart;
-    footer->loopEnd = mLoopEnd;
+    footer->loopLength = mLoopLength;
     footer->volume = mVolume;
     footer->pitch = mPitch;
     footer->pan = mPan;

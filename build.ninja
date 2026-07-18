@@ -13,7 +13,7 @@ rule link
   command = g++ $ldflags $in -o $out
 
 outdir = build
-cflags = -std=c++20 -O3 -Isrc
+cflags = -std=c++20 -O3 -idirafter src -Isrc
 ldflags = -lm
 
 build $outdir/main.o: cc src/main.cpp

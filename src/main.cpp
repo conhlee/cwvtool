@@ -20,7 +20,7 @@ enum {
 
 int main(int argc, char **argv) {
     if (argc < 3) {
-        printf("CWVtool v1.2\n");
+        printf("CWVtool v1.3\n");
         printf("CWVtool was built " __DATE__ " " __TIME__ "\n\n");
 
         printf("usage for decode: %s decode <path to cwv> [path to wav]\n", argv[0]);
@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
 
         printf("Loop: ");
         if (cwvSound.getLoopEnabled()) {
-            printf("(start=%u, end=%u)\n", cwvSound.getLoopStart(), cwvSound.getLoopEnd());
+            printf("(start=%u, length=%u)\n", cwvSound.getLoopStart(), cwvSound.getLoopLength());
         }
         else {
             printf("(none)\n");
@@ -173,10 +173,12 @@ int main(int argc, char **argv) {
         
         WAVSound wavSound;
         if (decLoopTimes > 0) {
+            u32 channelCount = cwvSound.getChannelCount();
+
             u32 loopStart, loopEnd;
             if (cwvSound.getLoopEnabled()) {
                 loopStart = cwvSound.getLoopStart();
-                loopEnd = cwvSound.getLoopEnd();
+                loopEnd = loopStart + cwvSound.getLoopLength();
             }
             else {
                 loopStart = 0;
@@ -184,20 +186,30 @@ int main(int argc, char **argv) {
             }
 
             u32 loopLength = loopEnd - loopStart;
-            u32 finalLength = loopStart + (loopLength * (decLoopTimes + 1));
+            u32 finalLength = cwvSound.calcSampleCount() + (decLoopTimes * loopLength);
             
             const s16 *source = cwvSound.getSampleData();
+            s16 *sampleData = new s16[finalLength * channelCount];
+            memset(sampleData, 0x00, finalLength * channelCount);
 
-            s16 *sampleData = new s16[finalLength * cwvSound.getChannelCount()];
+            memcpy(sampleData, source, loopEnd * channelCount * sizeof(s16));
 
-            if (loopStart != 0) {
-                memcpy(sampleData, source, loopStart * sizeof(s16) * cwvSound.getChannelCount());
-            }
-            for (u32 i = loopStart; i < finalLength; i += loopLength) {
+            u32 p = loopEnd;
+            for (u32 i = 0; i < decLoopTimes; i++) {
                 memcpy(
-                    sampleData + (i * cwvSound.getChannelCount()),
-                    source + (loopStart * cwvSound.getChannelCount()),
-                    loopLength * sizeof(s16) * cwvSound.getChannelCount()
+                    sampleData + (p * channelCount),
+                    source + (loopStart * channelCount),
+                    loopLength * channelCount * sizeof(s16)
+                );
+                p += loopLength;
+            }
+
+            if (loopEnd < cwvSound.calcSampleCount()) {
+                u32 endingLen = cwvSound.calcSampleCount() - loopEnd;
+                memcpy(
+                    sampleData + (p * channelCount),
+                    source + (loopEnd * channelCount),
+                    endingLen * channelCount * sizeof(s16)
                 );
             }
 
@@ -298,7 +310,7 @@ int main(int argc, char **argv) {
             }
 
             cwvSound.setLoopStart(encLoopStart);
-            cwvSound.setLoopEnd(encLoopEnd);
+            cwvSound.setLoopLength(encLoopEnd - encLoopStart);
         }
 
         cwvSound.setVolume(encVolume);

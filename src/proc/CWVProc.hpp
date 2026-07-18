@@ -26,13 +26,13 @@ public:
     const s16 *getSampleData(void) const { return mSampleData; }
     s16 *getSampleData(void) { return mSampleData; }
 
-    bool getLoopEnabled(void) const { return mLoopEnd != 0; }
+    bool getLoopEnabled(void) const { return mLoopLength != 0; }
 
     u32 getLoopStart(void) const { return mLoopStart; }
     void setLoopStart(u32 loopStart) { mLoopStart = loopStart; }
 
-    u32 getLoopEnd(void) const { return mLoopEnd; }
-    void setLoopEnd(u32 loopEnd) { mLoopEnd = loopEnd; }
+    u32 getLoopLength(void) const { return mLoopLength; }
+    void setLoopLength(u32 loopLength) { mLoopLength = loopLength; }
 
     f32 getVolume(void) const { return mVolume; }
     void setVolume(f32 volume) { mVolume = volume; }
@@ -58,7 +58,7 @@ private:
     s16 *mSampleData;
 
     u32 mLoopStart;
-    u32 mLoopEnd;
+    u32 mLoopLength;
     f32 mVolume;
     f32 mPitch;
     f32 mPan;
