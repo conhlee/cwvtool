@@ -20,7 +20,7 @@ enum {
 
 int main(int argc, char **argv) {
     if (argc < 3) {
-        printf("CWVtool v1.3\n");
+        printf("CWVtool v1.4\n");
         printf("CWVtool was built " __DATE__ " " __TIME__ "\n\n");
 
         printf("usage for decode: %s decode <path to cwv> [path to wav]\n", argv[0]);
