@@ -139,7 +139,7 @@ CWVSound &CWVSound::operator=(CWVSound &&other) {
 
 void CWVSound::setName(const char *name) {
     u32 nameLength = strlen(name);
-    memcpy(mName, name, MIN(nameLength, sizeof(mName) - 1));
+    memcpy(mName, name, MIN((nameLength + 1), sizeof(mName)));
     mName[sizeof(mName) - 1] = '\0';
 }
 
