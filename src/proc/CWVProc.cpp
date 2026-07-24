@@ -58,9 +58,7 @@ CWVSound::CWVSound(const Buffer &data) {
     const u8 *samples = data.data<u8>();
     const CWVFooter *footer = data.data<const CWVFooter>(data.get_size() - sizeof(CWVFooter));
 
-    if ((footer->flags >> 1) != 1) {
-        Panic("CWVSound ctor: CWV flagbits are bad (%08X)", footer->flags);
-    }
+    mPCMFlag = (footer->flags >> 1) != 1;
 
     bool stereo = (footer->flags & 1) != 0;
     mChannelCount = stereo ? 2 : 1;
@@ -71,15 +69,20 @@ CWVSound::CWVSound(const Buffer &data) {
     u32 sampleDataSize = mSampleCount * sizeof(s16) * mChannelCount;
     mSampleData = new s16[sampleDataSize / sizeof(s16)];
 
-    for (u32 i = 0; i < mChannelCount; i++) {
-        s16 prevSample = 0;
-        for (u32 j = 0; j < mSampleCount; j++) {
-            s16 sample = (s16)s_cwvLUT[samples[(j * mChannelCount) + i]];
+    if (mPCMFlag) {
+        memcpy(mSampleData, samples, sampleDataSize);
+    }
+    else {
+        for (u32 i = 0; i < mChannelCount; i++) {
+            s16 prevSample = 0;
+            for (u32 j = 0; j < mSampleCount; j++) {
+                s16 sample = (s16)s_cwvLUT[samples[(j * mChannelCount) + i]];
 
-            s16 finalSample = sample + prevSample;
-            prevSample = finalSample;
+                s16 finalSample = sample + prevSample;
+                prevSample = finalSample;
 
-            mSampleData[(j * mChannelCount) + i] = finalSample;
+                mSampleData[(j * mChannelCount) + i] = finalSample;
+            }
         }
     }
 
@@ -101,7 +104,8 @@ CWVSound::CWVSound(const Buffer &data) {
 
 CWVSound::CWVSound(const s16 *sampleData, u32 sampleCount, u16 channelCount, u32 sampleRate) :
     mSampleCount(sampleCount), mChannelCount(channelCount), mSampleRate(sampleRate),
-    mLoopStart(0), mLoopLength(0), mVolume(1.0f), mPitch(1.0f), mPan(1.0f)
+    mLoopStart(0), mLoopLength(0), mVolume(1.0f), mPitch(1.0f), mPan(1.0f),
+    mPCMFlag(false)
 {
     u32 sampleDataSize = sampleCount * sizeof(s16) * channelCount;
     mSampleData = new s16[sampleDataSize / sizeof(s16)];
@@ -127,12 +131,14 @@ CWVSound &CWVSound::operator=(CWVSound &&other) {
         mChannelCount = other.mChannelCount;
         mSampleData = other.mSampleData;
         memcpy(mName, other.mName, sizeof(mName));
+        mPCMFlag = other.mPCMFlag;
 
         other.mSampleRate = 0;
         other.mSampleCount = 0;
         other.mChannelCount = 0;
         other.mSampleData = NULL;
         other.mName[0] = '\0';
+        other.mPCMFlag = false;
     }
     return *this;
 }
@@ -144,7 +150,8 @@ void CWVSound::setName(const char *name) {
 }
 
 Buffer CWVSound::build(void) {
-    u32 sampleDataSize = sizeof(u8) * mSampleCount * mChannelCount;
+    u32 sampleSize = mPCMFlag ? sizeof(s16) : sizeof(u8);
+    u32 sampleDataSize = sampleSize * mSampleCount * mChannelCount;
 
     u32 fileSize = (sampleDataSize + sizeof(CWVFooter) + 0xFFF) & ~0xFFF;
 
@@ -156,7 +163,10 @@ Buffer CWVSound::build(void) {
     doEncode(samples);
 
     CWVFooter *footer = buffer.data<CWVFooter>(footerOffset);
-    footer->flags = (1 << 1) | ((mChannelCount == 2) ? 1 : 0);
+    
+    footer->flags = 0;
+    if (mChannelCount == 2) footer->flags |= (1 << 0);
+    if (!mPCMFlag) footer->flags |= (1 << 1);
 
     footer->sampleRate = mSampleRate;
     footer->sampleCount = mSampleCount;
@@ -177,24 +187,30 @@ Buffer CWVSound::build(void) {
 }
 
 void CWVSound::doEncode(u8 *dest) {
-    for (u32 i = 0; i < mChannelCount; i++) {
-        s32 prevSample = 0;
-        for (u32 j = 0; j < mSampleCount; j++) {
-            u32 index = (j * mChannelCount) + i;
+    if (mPCMFlag) {
+        u32 sampleDataSize = sizeof(s16) * mSampleCount * mChannelCount;
+        memcpy(dest, mSampleData, sampleDataSize);
+    }
+    else {
+        for (u32 i = 0; i < mChannelCount; i++) {
+            s32 prevSample = 0;
+            for (u32 j = 0; j < mSampleCount; j++) {
+                u32 index = (j * mChannelCount) + i;
 
-            s32 diff = mSampleData[index] - prevSample;
+                s32 diff = mSampleData[index] - prevSample;
 
-            if (diff > (s16)0x7FFF) {
-                diff = (s16)0x7FFF;
+                if (diff > (s16)0x7FFF) {
+                    diff = (s16)0x7FFF;
+                }
+                else if (diff < (s16)0x8000) {
+                    diff = (s16)0x8000;
+                }
+
+                u8 lutSample = s_cwvLUTInv[(u16)diff];
+                dest[index] = lutSample;
+
+                prevSample += (s16)s_cwvLUT[lutSample];
             }
-            else if (diff < (s16)0x8000) {
-                diff = (s16)0x8000;
-            }
-
-            u8 lutSample = s_cwvLUTInv[(u16)diff];
-            dest[index] = lutSample;
-
-            prevSample += (s16)s_cwvLUT[lutSample];
         }
     }
 }

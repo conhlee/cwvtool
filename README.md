@@ -4,9 +4,9 @@ CWVTool is a tool for encoding & decoding CWV sound files used in Rhythm Heaven 
 
 ## about CWV
 
-CWV (presumably meaning Compressed WaVe), is a file format storing sample data in some custom form of ADPCM, information such as channel count, sample rate and sample count, and some additonal data (loop points, volume, pitch, and pan).
+CWV (presumably meaning Compressed WaVe), is a file format storing sample data in either a custom form of ADPCM or regular PCM16, information such as channel count, sample rate and sample count, and some additonal data (loop points, volume, pitch, and pan).
 
-This ADPCM utilises a LUT (lookup table) to convert from the ADPCM sample to a delta PCM sample. This LUT is non-linear and offers higher precision / accuracy to delta values which are closer to zero. This LUT (and its inverse) can be found in [src/proc/CWVProc_LUT.inc.cpp](src/proc/CWVProc_LUT.inc.cpp).
+The ADPCM sample format utilises a LUT (lookup table) to convert from the compressed sample to a delta PCM sample. This LUT is non-linear and offers higher precision / accuracy to delta values which are closer to zero. This LUT (and its inverse) can be found in [src/proc/CWVProc_LUT.inc.cpp](src/proc/CWVProc_LUT.inc.cpp).
 
 ## building
 

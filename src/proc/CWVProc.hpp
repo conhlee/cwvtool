@@ -46,6 +46,9 @@ public:
     const char *getName(void) const { return mName; }
     void setName(const char *name);
 
+    bool getPCMFlag(void) const { return mPCMFlag; }
+    void setPCMFlag(bool pcmFlag) { mPCMFlag = pcmFlag; }
+
     Buffer build(void);
 
 private:
@@ -63,6 +66,8 @@ private:
     f32 mPitch;
     f32 mPan;
     char mName[0xB4 + 1];
+
+    bool mPCMFlag;
 };
 
 #endif // PROC_CWV_PROC_HPP

@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
         printf("                  [--loop-times=<times>]\n");
         printf("usage for encode: %s encode <path to wav> [path to cwv]\n", argv[0]);
         printf("                  [--volume=<vol>] [--pitch=<pitch>] [--pan=<pan>]\n");
-        printf("                  [--name=<name>]\n");
+        printf("                  [--name=<name>] [--pcm]\n");
         printf("                  [--loop-start=<offset>] [--loop-end=<offset>]\n");
         printf("                                             ^ note: negative offset\n");
         printf("                                                     is allowed here\n");
@@ -52,6 +52,7 @@ int main(int argc, char **argv) {
     f32 encPitch = 1.0f;
     f32 encPan = 0.0f;
     const char *encName = "";
+    bool encPCMFlag = false;
 
     for (s32 i = 1; i < argc; i++) {
         char *arg = argv[i];
@@ -94,6 +95,9 @@ int main(int argc, char **argv) {
             }
             else if (strncasecmp(arg, "name=", STR_LIT_LEN("name=")) == 0) {
                 encName = arg + STR_LIT_LEN("name=");
+            }
+            else if ((strcasecmp(arg, "pcm") == 0) || (strcasecmp(arg, "pcm16") == 0)) {
+                encPCMFlag = true;
             }
             else {
                 arg -= 2;
@@ -153,6 +157,8 @@ int main(int argc, char **argv) {
         printf("-- Decode CWV \"%s\" --\n", pathToCWV);
         printf("Name: %s\n", cwvSound.getName());
 
+        printf("Compressed: %s\n", cwvSound.getPCMFlag() ? "No (PCM16)" : "Yes (ADPCM)");
+
         f32 seconds = static_cast<f32>(cwvSound.calcSampleCount()) / cwvSound.getSampleRate();
         printf("Sample Count: %u (%f seconds)\n", cwvSound.calcSampleCount(), seconds);
 
@@ -161,7 +167,7 @@ int main(int argc, char **argv) {
 
         printf("Loop: ");
         if (cwvSound.getLoopEnabled()) {
-            printf("(start=%u, length=%u)\n", cwvSound.getLoopStart(), cwvSound.getLoopLength());
+            printf("(start=%u, end=%u)\n", cwvSound.getLoopStart(), cwvSound.getLoopStart() + cwvSound.getLoopLength());
         }
         else {
             printf("(none)\n");
@@ -318,6 +324,8 @@ int main(int argc, char **argv) {
         cwvSound.setPan(encPan);
 
         cwvSound.setName(encName);
+
+        cwvSound.setPCMFlag(encPCMFlag);
 
         Buffer cwvBuffer = cwvSound.build();
 
