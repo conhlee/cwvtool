@@ -76,7 +76,7 @@ CWVSound::CWVSound(const Buffer &data) {
         for (u32 i = 0; i < mChannelCount; i++) {
             s16 prevSample = 0;
             for (u32 j = 0; j < mSampleCount; j++) {
-                s16 sample = (s16)s_cwvLUT[samples[(j * mChannelCount) + i]];
+                s16 sample = s_cwvLUT[samples[(j * mChannelCount) + i]];
 
                 s16 finalSample = sample + prevSample;
                 prevSample = finalSample;
@@ -199,17 +199,17 @@ void CWVSound::doEncode(u8 *dest) {
 
                 s32 diff = mSampleData[index] - prevSample;
 
-                if (diff > (s16)0x7FFF) {
-                    diff = (s16)0x7FFF;
+                if (diff > 32767) {
+                    diff = 32767;
                 }
-                else if (diff < (s16)0x8000) {
-                    diff = (s16)0x8000;
+                else if (diff < -32768) {
+                    diff = -32768;
                 }
 
                 u8 lutSample = s_cwvLUTInv[(u16)diff];
                 dest[index] = lutSample;
 
-                prevSample += (s16)s_cwvLUT[lutSample];
+                prevSample += s_cwvLUT[lutSample];
             }
         }
     }
