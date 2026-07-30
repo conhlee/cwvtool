@@ -3,6 +3,9 @@
 pool link_pool
   depth = 1
 
+pool ar_pool
+  depth = 1
+
 rule cc
   deps = gcc
   depfile = $out.d
@@ -12,17 +15,33 @@ rule link
   pool = link_pool
   command = g++ $ldflags $in -o $out
 
+rule ar
+  pool = ar_pool
+  command = ar rcs $out $in
+
 outdir = build
 cflags = -std=c++20 -O3 -idirafter src -Isrc
 ldflags = -lm
+
+build lib: phony $outdir/libcwv.a
+build bin: phony $outdir/cwvtool
+build all: phony lib bin
+default bin
 
 build $outdir/main.o: cc src/main.cpp
 build $outdir/File.o: cc src/File.cpp
 build $outdir/Error.o: cc src/Error.cpp
 build $outdir/CWVProc.o: cc src/proc/CWVProc.cpp
 build $outdir/WAVProc.o: cc src/proc/WAVProc.cpp
+build $outdir/Convert.o: cc src/Convert.cpp
+
+build $outdir/libcwv.a: ar $
+    $outdir/Convert.o $
+    $outdir/File.o $outdir/Error.o $
+    $outdir/CWVProc.o $outdir/WAVProc.o
 
 build $outdir/cwvtool: link $
     $outdir/main.o $
+    $outdir/Convert.o $
     $outdir/File.o $outdir/Error.o $
     $outdir/CWVProc.o $outdir/WAVProc.o

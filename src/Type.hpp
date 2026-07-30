@@ -1,8 +1,8 @@
 #ifndef TYPE_HPP
 #define TYPE_HPP
 
-#include <cstdint> // IWYU pragma: keep
-#include <cstddef> // IWYU pragma: keep
+#include <stdint.h> // IWYU pragma: keep
+#include <stddef.h> // IWYU pragma: keep
 
 typedef uint64_t u64;
 typedef int64_t  s64;
