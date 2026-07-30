@@ -19,7 +19,7 @@ typedef struct __attribute__((packed)) {
     u32 loopLength;
     f32 volume;
     f32 pitch; /* Usually 1.0f */
-    u32 pan; /* Usually 0.0f */
+    f32 pan; /* Usually 0.0f */
     u32 unk24; /* Usually 2 */
     u32 unk28;
     u32 unk2C;

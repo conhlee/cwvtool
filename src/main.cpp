@@ -20,7 +20,7 @@ enum {
 
 int main(int argc, char **argv) {
     if (argc < 3) {
-        printf("CWVtool v1.4\n");
+        printf("CWVtool v1.4b\n");
         printf("CWVtool was built " __DATE__ " " __TIME__ "\n\n");
 
         printf("usage for decode: %s decode <path to cwv> [path to wav]\n", argv[0]);
@@ -233,7 +233,6 @@ int main(int argc, char **argv) {
             );
         }
 
-        /* TODO: confirm accuracy */
         f32 pan = cwvSound.getPan();
         if (decApplyPitch && (pan != 0.0f) && (cwvSound.getChannelCount() == 2)) {
             f32 p = (pan + 1.0f) * 0.7853982f;
@@ -246,16 +245,16 @@ int main(int argc, char **argv) {
             vol[1] = MAX(MIN(vol[1], 1.0f), 0.0f);
 
             s16 *sampleData = wavSound.getSampleData();
-            for (u32 i = 0; i < wavSound.calcSampleCount(); i += wavSound.getChannelCount()) {
-                for (u32 j = 0; j < wavSound.getChannelCount(); j++) {
-                    s32 sample = static_cast<s32>(static_cast<f32>(sampleData[i]) * vol[j]);
+            for (u32 i = 0; i < (wavSound.calcSampleCount() * 2); i += 2) {
+                for (u32 j = 0; j < 2; j++) {
+                    s32 sample = static_cast<s32>(static_cast<f32>(sampleData[i + j]) * vol[j]);
                     if (sample > (s16)0x7FFF) {
                         sample = (s16)0x7FFF;
                     }
                     else if (sample < (s16)0x8000) {
                         sample = (s16)0x8000;
                     }
-                    sampleData[i] = static_cast<s16>(sample);
+                    sampleData[i + j] = static_cast<s16>(sample);
                 }
             }
         }
