@@ -234,7 +234,26 @@ int main(int argc, char **argv) {
         }
 
         f32 pan = cwvSound.getPan();
-        if (decApplyPitch && (pan != 0.0f) && (cwvSound.getChannelCount() == 2)) {
+        if (decApplyPan && (pan != 0.0f)) {
+            /* WAV must be dual channel to encode panning */
+            if (wavSound.getChannelCount() == 1) {
+                Warn("Output WAV will be dual-channel for panning apply");
+
+                u32 sampleCount = wavSound.calcSampleCount();
+                u32 sampleRate = wavSound.getSampleRate();
+
+                const s16 *src = wavSound.getSampleData();
+                s16 *dest = new s16[sampleCount * 2];
+                for (u32 i = 0; i < sampleCount; i++) {
+                    dest[(i*2) + 0] = src[i];
+                    dest[(i*2) + 1] = src[i];
+                }
+
+                wavSound = WAVSound(dest, sampleCount, 2, sampleRate);
+
+                delete[] dest;
+            }
+
             f32 p = (pan + 1.0f) * 0.7853982f;
 
             f32 vol[2];
@@ -248,11 +267,11 @@ int main(int argc, char **argv) {
             for (u32 i = 0; i < (wavSound.calcSampleCount() * 2); i += 2) {
                 for (u32 j = 0; j < 2; j++) {
                     s32 sample = static_cast<s32>(static_cast<f32>(sampleData[i + j]) * vol[j]);
-                    if (sample > (s16)0x7FFF) {
-                        sample = (s16)0x7FFF;
+                    if (sample > 32767) {
+                        sample = 32767;
                     }
-                    else if (sample < (s16)0x8000) {
-                        sample = (s16)0x8000;
+                    else if (sample < -32768) {
+                        sample = -32768;
                     }
                     sampleData[i + j] = static_cast<s16>(sample);
                 }
@@ -265,11 +284,11 @@ int main(int argc, char **argv) {
             u32 sampleCount = wavSound.calcSampleCount() * wavSound.getChannelCount();
             for (u32 i = 0; i < sampleCount; i++) {
                 s32 sample = static_cast<s32>(static_cast<f32>(sampleData[i]) * volume);
-                if (sample > (s16)0x7FFF) {
-                    sample = (s16)0x7FFF;
+                if (sample > 32767) {
+                    sample = 32767;
                 }
-                else if (sample < (s16)0x8000) {
-                    sample = (s16)0x8000;
+                else if (sample < -32768) {
+                    sample = -32768;
                 }
                 sampleData[i] = static_cast<s16>(sample);
             }
